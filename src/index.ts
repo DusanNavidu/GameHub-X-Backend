@@ -22,7 +22,7 @@ app.use(express.urlencoded({ extended: true }));
 
 app.use(
   cors({
-    origin: ["https://garage-system-frontend.vercel.app", "http://localhost:5173", "http://localhost:5174"],
+    origin: ["https://gamehub-x-fe.vercel.app", "http://localhost:5173", "http://localhost:5174"],
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     credentials: true,
     allowedHeaders: ["Content-Type", "Authorization"]
@@ -44,7 +44,6 @@ app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/categories', categoryRoutes);
 app.use('/api/v1/games', gameRoutes);
 
-// Local Development එකේදී විතරක් සර්වර් එක Run වෙන්න (Vercel වලදී මේක ඉබේම handle වෙනවා)
 if (process.env.NODE_ENV !== 'production') {
     const PORT = process.env.PORT || 5000;
     app.listen(PORT, () => {
@@ -52,5 +51,4 @@ if (process.env.NODE_ENV !== 'production') {
     });
 }
 
-// 🔴 මෙන්න මේ පේළිය අනිවාර්යයි Vercel වලට (Express app එක export කරනවා)
 export default app;
