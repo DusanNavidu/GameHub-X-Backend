@@ -32,6 +32,11 @@ app.use((req, res, next) => {
 // Equivalent to ResourceHandler for Uploads
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
+// Base Route
+app.get('/', (req, res) => {
+    res.send('GameHub-X API is running smoothly on Vercel! 🚀');
+});
+
 // Routes
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/categories', categoryRoutes);
