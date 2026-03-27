@@ -1,7 +1,6 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import path from 'path';
 import { connectDB } from './config/db';
 import { initAdminUser } from './config/initAdmin';
 import authRoutes from './routes/authRoutes';
@@ -10,27 +9,27 @@ import gameRoutes from './routes/gameRoutes';
 
 dotenv.config();
 
+// 🔴 Vercel (Serverless) Initialization 🔴
+// සර්වර් එක Cold Start වෙද්දීම මේවා load වෙන්න ඕනේ
+connectDB();
+initAdminUser();
+
 const app = express();
 
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Spring Boot 'WebConfig' & 'SecurityConfig' equivalent
 app.use(cors({
     origin: '*',
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
     credentials: true
 }));
 
-// Equivalent to .frameOptions(frameOptions -> frameOptions.disable())
 app.use((req, res, next) => {
     res.removeHeader('X-Frame-Options');
     next();
 });
-
-// Equivalent to ResourceHandler for Uploads
-app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // Base Route
 app.get('/', (req, res) => {
@@ -42,15 +41,13 @@ app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/categories', categoryRoutes);
 app.use('/api/v1/games', gameRoutes);
 
-// Start Server
-const PORT = process.env.PORT || 8080;
+// Local Development එකේදී විතරක් සර්වර් එක Run වෙන්න (Vercel වලදී මේක ඉබේම handle වෙනවා)
+if (process.env.NODE_ENV !== 'production') {
+    const PORT = process.env.PORT || 8080;
+    app.listen(PORT, () => {
+        console.log(`Server running locally on port ${PORT}`);
+    });
+}
 
-app.listen(PORT, async () => {
-    console.log(`Server running on port ${PORT}`);
-    
-    // Connect to MongoDB
-    await connectDB();
-    
-    // Initialize Default Admin (CommandLineRunner equivalent)
-    await initAdminUser();
-});
+// 🔴 මෙන්න මේ පේළිය අනිවාර්යයි Vercel වලට (Express app එක export කරනවා)
+export default app;
