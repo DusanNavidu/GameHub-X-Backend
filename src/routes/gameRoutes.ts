@@ -1,17 +1,24 @@
-import express from 'express';
-import { uploadGame, getAllGames, updateGame, toggleGameStatus } from '../controllers/gameController';
-import { protect, adminOnly } from '../middlewares/authMiddleware';
-import { upload } from '../middlewares/uploadMiddleware';
+import { Router } from "express";
+import { addGame, getAllGames, getGameById, updateGame, toggleGameStatus } from "../controllers/gameController";
+import { authenticate } from "../middlewares/auth";
+import { requireRole } from "../middlewares/role";
+import { Role } from "../models/User";
+import { upload } from "../middlewares/upload";
 
-const router = express.Router();
+const router = Router();
 
-// field වල නම් හරියටම Spring Boot එකේ වගේමයි (thumbnail, gameFile)
-router.post('/upload', protect, adminOnly, upload.fields([{ name: 'thumbnail', maxCount: 1 }, { name: 'gameFile', maxCount: 1 }]), uploadGame);
+// Multiple files upload config
+const gameUploads = upload.fields([
+    { name: 'thumbnail', maxCount: 1 },
+    { name: 'gameFile', maxCount: 1 }
+]);
 
-router.get('/', getAllGames);
+router.get("/", authenticate, getAllGames);
+router.get("/:id", authenticate, getGameById);
 
-router.put('/:id', protect, adminOnly, upload.fields([{ name: 'thumbnail', maxCount: 1 }, { name: 'gameFile', maxCount: 1 }]), updateGame);
-
-router.patch('/:id/status', protect, adminOnly, toggleGameStatus);
+// Admin only routes
+router.post("/", authenticate, requireRole([Role.ADMIN]), gameUploads, addGame);
+router.put("/:id", authenticate, requireRole([Role.ADMIN]), updateGame);
+router.patch("/:id/status", authenticate, requireRole([Role.ADMIN]), toggleGameStatus);
 
 export default router;

@@ -1,41 +1,102 @@
-import { Request, Response } from 'express'; // 🔴 Request එක Import කරලා තියෙන්නේ
-import * as gameService from '../services/gameService';
-import { APIResponse } from '../utils/apiResponse';
-import { AuthRequest } from '../middlewares/authMiddleware';
+import Game from "../models/Game";
+import { Request, Response } from "express";
+import cloudinary from "../config/cloudinary";
+import { AUthRequest } from "../middlewares/auth";
 
-export const uploadGame = async (req: AuthRequest, res: Response) => {
+// 1. Add Game (Thumbnail & Game File Upload)
+export const addGame = async (req: AUthRequest, res: Response) => {
     try {
-        const uploaderEmail = req.user.email; 
-        const game = await gameService.uploadGameService(req.body, req.files, uploaderEmail);
-        res.status(200).json(new APIResponse(200, "Game uploaded successfully", game));
-    } catch (error: any) {
-        res.status(500).json(new APIResponse(500, "Failed to upload game: " + error.message));
+        const { title, description, categoryId } = req.body;
+        const userId = req.user.sub; // Middleware eken ena user ID eka
+
+        const files = req.files as { [fieldname: string]: Express.Multer.File[] };
+        
+        if (!files?.thumbnail?.[0] || !files?.gameFile?.[0]) {
+            return res.status(400).json({ message: "Both thumbnail and game file are required" });
+        }
+
+        // Upload Thumbnail (Image)
+        const uploadThumbnail: any = await new Promise((resolve, reject) => {
+            const stream = cloudinary.uploader.upload_stream(
+                { folder: "games/thumbnails" },
+                (error, result) => (error ? reject(error) : resolve(result))
+            );
+            stream.end(files.thumbnail[0].buffer);
+        });
+
+        // Upload Game File (Raw file - zip, html, etc.)
+        const uploadGameFile: any = await new Promise((resolve, reject) => {
+            const stream = cloudinary.uploader.upload_stream(
+                { folder: "games/files", resource_type: "raw" },
+                (error, result) => (error ? reject(error) : resolve(result))
+            );
+            stream.end(files.gameFile[0].buffer);
+        });
+
+        const newGame = await Game.create({
+            title,
+            description,
+            categoryId,
+            thumbnailUrl: uploadThumbnail.secure_url,
+            gameUrl: uploadGameFile.secure_url,
+            uploadedByUserId: userId
+        });
+
+        res.status(201).json({ message: "Game uploaded successfully!", data: newGame });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: "Server error during upload" });
     }
 };
 
+// 2. Get All Games
 export const getAllGames = async (req: Request, res: Response) => {
     try {
-        const games = await gameService.getAllGamesService();
-        res.status(200).json(new APIResponse(200, "Success", games));
-    } catch (error: any) {
-        res.status(500).json(new APIResponse(500, error.message));
+        const games = await Game.find().populate('categoryId', 'name').sort({ createdAt: -1 });
+        res.status(200).json({ data: games });
+    } catch (err) {
+        res.status(500).json({ message: "Error fetching games" });
     }
 };
 
-export const updateGame = async (req: AuthRequest, res: Response) => {
+// 3. Get Game By ID
+export const getGameById = async (req: Request, res: Response) => {
     try {
-        const game = await gameService.updateGameService(req.params.id as string, req.body, req.files);
-        res.status(200).json(new APIResponse(200, "Game updated successfully", game));
-    } catch (error: any) {
-        res.status(500).json(new APIResponse(500, "Failed to update game: " + error.message));
+        const game = await Game.findById(req.params.id).populate('categoryId', 'name');
+        if (!game) return res.status(404).json({ message: "Game not found" });
+        res.status(200).json({ data: game });
+    } catch (err) {
+        res.status(500).json({ message: "Error fetching game details" });
     }
 };
 
+// 4. Update Game (Details only)
+export const updateGame = async (req: Request, res: Response) => {
+    try {
+        const { title, description, categoryId } = req.body;
+        const updatedGame = await Game.findByIdAndUpdate(
+            req.params.id,
+            { title, description, categoryId },
+            { new: true }
+        );
+        if (!updatedGame) return res.status(404).json({ message: "Game not found" });
+        res.status(200).json({ message: "Game updated", data: updatedGame });
+    } catch (err) {
+        res.status(500).json({ message: "Error updating game" });
+    }
+};
+
+// 5. Toggle Status (Active/Inactive)
 export const toggleGameStatus = async (req: Request, res: Response) => {
     try {
-        const game = await gameService.toggleGameStatusService(req.params.id as string);
-        res.status(200).json(new APIResponse(200, "Game status updated successfully", game));
-    } catch (error: any) {
-        res.status(500).json(new APIResponse(500, "Failed to update status: " + error.message));
+        const game = await Game.findById(req.params.id);
+        if (!game) return res.status(404).json({ message: "Game not found" });
+
+        game.status = game.status === "ACTIVE" ? "INACTIVE" as any : "ACTIVE" as any;
+        await game.save();
+
+        res.status(200).json({ message: `Game is now ${game.status}`, data: game });
+    } catch (err) {
+        res.status(500).json({ message: "Error toggling status" });
     }
 };

@@ -1,15 +1,35 @@
-import express from 'express';
-import { registerPlayer, requestOtp, verifyOtp, refreshToken, getAllUsers } from '../controllers/userController';
-import { protect, adminOnly } from '../middlewares/authMiddleware';
+import express, { Router } from 'express';
+import { refreshToken, getMyProfile, register, requestOTP, verifyOTP } from '../controllers/userController';
+import { authenticate } from '../middlewares/auth';
+import { requireRole } from '../middlewares/role';
+import { Role } from '../models/User';
 
-const router = express.Router();
+const router = Router()
 
-router.post('/register', registerPlayer);
-router.post('/request-otp', requestOtp);
-router.post('/verify-otp', verifyOtp);
-router.post('/refresh-token', refreshToken);
+router.get(
+  "/me", 
+  authenticate, 
+  getMyProfile
+);
 
-// Protected Admin Route
-router.get('/users', protect, adminOnly, getAllUsers);
+router.post(
+  "/refresh", 
+  refreshToken
+)
+
+router.post(
+    "/register", 
+    register
+);
+
+router.post(
+    "/login-request", 
+    requestOTP
+);
+
+router.post(
+    "/login-verify", 
+    verifyOTP
+);
 
 export default router;
