@@ -9,20 +9,17 @@ import gameRoutes from './routes/gameRoutes';
 
 dotenv.config();
 
-// 🔴 Vercel (Serverless) Initialization 🔴
-// සර්වර් එක Cold Start වෙද්දීම මේවා load වෙන්න ඕනේ
 connectDB();
 initAdminUser();
 
 const app = express();
 
-// Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 app.use(
   cors({
-    origin: ["https://gamehub-x-fe.vercel.app", "http://localhost:5173", "http://localhost:5174"],
+    origin: ["https://game-hub-x-backend.vercel.app", "http://localhost:5173", "http://localhost:5174"],
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     credentials: true,
     allowedHeaders: ["Content-Type", "Authorization"]
