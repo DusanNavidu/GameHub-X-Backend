@@ -9,6 +9,7 @@ import gameRoutes from './routes/gameRoutes';
 
 dotenv.config();
 
+// Vercel Serverless Init
 connectDB();
 initAdminUser();
 
@@ -17,9 +18,10 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// 🔴 හරියටම Frontend URL එක CORS වලට දුන්නා 🔴
 app.use(
   cors({
-    origin: ["https://game-hub-x-backend.vercel.app", "http://localhost:5173", "http://localhost:5174"],
+    origin: ["https://gamehub-x-fe.vercel.app", "http://localhost:5173", "http://localhost:5174"],
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     credentials: true,
     allowedHeaders: ["Content-Type", "Authorization"]
@@ -31,18 +33,16 @@ app.use((req, res, next) => {
     next();
 });
 
-// Base Route
 app.get('/', (req, res) => {
     res.send('GameHub-X API is running smoothly on Vercel! 🚀');
 });
 
-// Routes
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/categories', categoryRoutes);
 app.use('/api/v1/games', gameRoutes);
 
 if (process.env.NODE_ENV !== 'production') {
-    const PORT = process.env.PORT || 5000;
+    const PORT = process.env.PORT || 8080;
     app.listen(PORT, () => {
         console.log(`Server running locally on port ${PORT}`);
     });
