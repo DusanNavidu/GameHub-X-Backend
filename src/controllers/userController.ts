@@ -44,19 +44,19 @@ export const getMyProfile = async (req: AUthRequest, res: Response) => {
   if (!req.user) {
     return res.status(401).json({ message: "Unauthorized" });
   }
+  
   const user = await User.findById(req.user.sub).select("-password");
 
   if (!user) {
-    return res.status(404).json({
-      message: "User not found",
-    });
+    return res.status(404).json({ message: "User not found" });
   }
 
-  const { email, fullName, _id } = user as IUser;
+  const { email, fullName, _id, role } = user as IUser;
 
-  res
-    .status(200)
-    .json({ message: "ok", data: { id: _id, email, fullName } });
+  res.status(200).json({ 
+    message: "ok", 
+    data: { id: _id, email, fullName, role } // role eka pass karanawa
+  });
 };
 
 export const verifyOTP = async (req: Request, res: Response) => {
