@@ -55,7 +55,7 @@ export const getMyProfile = async (req: AUthRequest, res: Response) => {
 
   res.status(200).json({ 
     message: "ok", 
-    data: { id: _id, email, fullName, role } // role eka pass karanawa
+    data: { id: _id, email, fullName, role }
   });
 };
 
@@ -68,12 +68,10 @@ export const verifyOTP = async (req: Request, res: Response) => {
             return res.status(400).json({ message: "Invalid or expired OTP" });
         }
 
-        // OTP valid nam, eka clear karanna
         user.otp = undefined;
         user.otpExpiryTime = undefined;
         await user.save();
 
-        // Generate JWT Tokens
         const accessToken = signAccessToken(user);
         const refreshToken = signRefreshToken(user);
 
@@ -102,7 +100,6 @@ export const requestOTP = async (req: Request, res: Response) => {
             return res.status(404).json({ message: "User not found. Please register first." });
         }
 
-        // Generate 6 digit OTP
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
         const otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 mins valid
 
@@ -110,7 +107,6 @@ export const requestOTP = async (req: Request, res: Response) => {
         user.otpExpiryTime = otpExpiry;
         await user.save();
 
-        // Send Email
         await transporter.sendMail({
             from: process.env.EMAIL_USER,
             to: email,
@@ -136,12 +132,45 @@ export const register = async (req: Request, res: Response) => {
         const newUser = await User.create({
             fullName,
             email,
-            role: Role.PLAYER, // Default player
+            role: Role.PLAYER,
             status: Status.ACTIVE
         });
 
         res.status(201).json({ message: "Registration successful!", user: newUser });
     } catch (error) {
         res.status(500).json({ message: "Server error", error });
+    }
+};
+
+export const getAllPlayers = async (req: Request, res: Response) => {
+    try {
+        const players = await User.find({ role: Role.PLAYER })
+                                  .select("-otp -otpExpiryTime")
+                                  .sort({ createdAt: -1 });
+        res.status(200).json({ data: players });
+    } catch (error) {
+        res.status(500).json({ message: "Server error fetching players", error });
+    }
+};
+
+export const toggleUserStatus = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const user = await User.findById(id);
+
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        if (user.role === Role.ADMIN) {
+            return res.status(403).json({ message: "Cannot modify ADMIN status" });
+        }
+
+        user.status = user.status === Status.ACTIVE ? Status.INACTIVE : Status.ACTIVE;
+        await user.save();
+
+        res.status(200).json({ message: `Player is now ${user.status}`, data: user });
+    } catch (error) {
+        res.status(500).json({ message: "Server error toggling status", error });
     }
 };
